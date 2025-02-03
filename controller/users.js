@@ -18,7 +18,6 @@ const loginUser = async (req, res) => {
         const usersCollection = db.collection('users');
 
         const user = await usersCollection.findOne({ email });
-        console.log('user', user);
         if (!user) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
@@ -87,9 +86,8 @@ const getUsers = async (req, res) => {
 
         // Example: Fetch data from the collection
         const findResult = await usersCollection.find({}).toArray();
-        console.log('Documents found:', findResult);
 
-        return res.status(201).json({ message: 'User liist retrived successfully', userslist: findResult });
+        return res.status(201).json({ message: 'User list retrived successfully', userslist: findResult });
     } catch (error) {
         console.error('Retrive user error:', error);
         return res.status(500).json({ error: 'Internal server error' });

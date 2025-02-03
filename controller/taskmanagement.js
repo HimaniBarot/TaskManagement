@@ -5,21 +5,21 @@ const dbconfig = require('../config/database');
 
 // Create Task
 const createTask = async (req, res) => {
-    const { title, description, priority, status, dueDate, userId } = req.body;
+    const { title, description, priority, status, dueDate } = req.body;
 
     if (!title || !description || !priority || !status || !dueDate) {
         return res.status(400).json({ error: 'All task fields are required' });
     }
 
-    if (!userId) {
-        return res.status(400).json({ error: 'User id is required' });
+    if (!req.user.userId) {
+        return res.status(400).json({ error: 'Missing user id' });
     }
 
     try {
         const db = await dbconfig.connectToDatabase();
         const tasksCollection = db.collection('tasks');
 
-        const newTask = { title, description, priority, status, dueDate: new Date(dueDate), userId };
+        const newTask = { title, description, priority, status, dueDate: new Date(dueDate), userId: req.user.userId };
         const result = await tasksCollection.insertOne(newTask);
 
         res.status(201).json({ message: 'Task created successfully', taskId: result.insertedId });
@@ -31,7 +31,8 @@ const createTask = async (req, res) => {
 
 // Retrieve Tasks with Filters and Pagination
 const getTasks = async (req, res) => {
-    const { priority, dueDate, page = 1, pageSize = 10, usertype, userId } = req.query;
+    const { priority, dueDate, page = 1, pageSize = 10 } = req.query;
+    const { userId, usertype } = req.user;
 
     const filters = {};
     if (priority) filters.priority = priority;
@@ -61,7 +62,8 @@ const getTasks = async (req, res) => {
 
 // Retrieve Task by ID
 const getTaskById = async (req, res) => {
-    const { id, userId, usertype } = req.params;
+    const { id } = req.params;
+    const usertype = req.user.usertype;
 
     if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid task ID' });
@@ -77,7 +79,7 @@ const getTaskById = async (req, res) => {
         }
 
         // Ensure that non-admin users can only access their own tasks
-        if (parseInt(usertype) !== 0 && task.userId !== userId) {
+        if (parseInt(usertype) !== 0 && task.userId !== req.user.userId) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -91,7 +93,9 @@ const getTaskById = async (req, res) => {
 // Update Task
 const updateTask = async (req, res) => {
     const { id } = req.params;
-    const { title, description, priority, status, dueDate, userId, usertype } = req.body;
+    const { title, description, priority, status, dueDate } = req.body;
+    const userId = req.user.userId;
+    const usertype = req.user.usertype;
 
     if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid task ID' });
@@ -136,7 +140,7 @@ const updateTask = async (req, res) => {
 // Delete Task
 const deleteTask = async (req, res) => {
     const { id } = req.params;
-    const { usertype, userId } = req.body;
+    const { usertype, userId } = req.user;
 
     if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid task ID' });
